@@ -208,7 +208,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     thumb=thumb_path,
                     has_spoiler=True,
                     reply_to_message_id=topic_id,
-                    parse_mode=ParseMode.MARKDOWN,
+                    parse_mode=ParseMode.HTML,
                     progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
@@ -221,7 +221,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     photo=file,
                     caption=caption,
                     has_spoiler=True,
-                    parse_mode=ParseMode.MARKDOWN,
+                    parse_mode=ParseMode.HTML,
                     progress=progress_bar,
                     reply_to_message_id=topic_id,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
@@ -236,7 +236,7 @@ async def upload_media(sender, target_chat_id, file, caption, edit, topic_id):
                     caption=caption,
                     thumb=thumb_path,
                     reply_to_message_id=topic_id,
-                    parse_mode=ParseMode.MARKDOWN,
+                    parse_mode=ParseMode.HTML,
                     progress=progress_bar,
                     progress_args=("╔══━⚡️Uploading...⚡️━══╗\n", edit, time.time())
                 )
@@ -400,7 +400,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         # Rename file
         file = await rename_file(file, sender)
         if msg.audio:
-            result = await app.send_audio(target_chat_id, file, caption=caption, reply_to_message_id=topic_id)
+            result = await app.send_audio(target_chat_id, file, caption=caption, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
             await result.copy(LOG_GROUP)
             await edit.delete(1)
             return
@@ -412,7 +412,7 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
             return
 
         if msg.photo:
-            result = await app.send_photo(target_chat_id, file, caption=caption, reply_to_message_id=topic_id)
+            result = await app.send_photo(target_chat_id, file, caption=caption, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
             await result.copy(LOG_GROUP)
             await edit.delete(1)
             return
@@ -442,13 +442,13 @@ async def get_msg(userbot, sender, edit_id, msg_link, i, message):
         
 async def clone_message(app, msg, target_chat_id, topic_id, edit_id, log_group):
     edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning...")
-    devgaganin = await app.send_message(target_chat_id, msg.text.markdown, reply_to_message_id=topic_id)
+    devgaganin = await app.send_message(target_chat_id, msg.text.html, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
     await devgaganin.copy(log_group)
     await edit.delete()
 
 async def clone_text_message(app, msg, target_chat_id, topic_id, edit_id, log_group):
     edit = await app.edit_message_text(target_chat_id, edit_id, "Cloning text message...")
-    devgaganin = await app.send_message(target_chat_id, msg.text.markdown, reply_to_message_id=topic_id)
+    devgaganin = await app.send_message(target_chat_id, msg.text.html, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
     await devgaganin.copy(log_group)
     await edit.delete()
 
@@ -488,14 +488,13 @@ def get_message_file_size(msg):
 
 async def get_final_caption(msg, sender):
     # Get original caption in markdown if available
-    original_caption = msg.caption.markdown if msg.caption else ""
+    original_caption = msg.caption.html if msg.caption else ""
     
     # Add custom caption if present
     custom_caption = get_user_caption_preference(sender)
     final_caption = f"{original_caption}\n\n{custom_caption}" if custom_caption else original_caption
 
-    # Replace @mentions with @Real_Pirates
-    final_caption = re.sub(r'@\w+', '𓍯𝙎𝙪𝙟𝙖𝙡⚝', final_caption)
+    # Preserve original Telegram mentions and links.
 
     # Replace all links with your channel link
 
@@ -571,7 +570,7 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
                 return
 
             if msg.text:
-                await app.send_message(target_chat_id, msg.text.markdown, reply_to_message_id=topic_id)
+                await app.send_message(target_chat_id, msg.text.html, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
                 return
 
             final_caption = format_caption(msg.caption.markdown if msg.caption else "", sender, custom_caption)
@@ -583,7 +582,7 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
             file = await rename_file(file, sender)
 
             if msg.photo:
-                result = await app.send_photo(target_chat_id, file, caption=final_caption, reply_to_message_id=topic_id)
+                result = await app.send_photo(target_chat_id, file, caption=final_caption, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
             elif msg.video or msg.document:
                 freecheck = await chk_user(chat_id, sender)
                 if file_size > size_limit and (freecheck == 1 or pro is None):
@@ -595,7 +594,7 @@ async def copy_message_with_chat_id(app, userbot, sender, chat_id, message_id, e
                     return
                 await upload_media(sender, target_chat_id, file, final_caption, edit, topic_id)
             elif msg.audio:
-                result = await app.send_audio(target_chat_id, file, caption=final_caption, reply_to_message_id=topic_id)
+                result = await app.send_audio(target_chat_id, file, caption=final_caption, reply_to_message_id=topic_id, parse_mode=ParseMode.HTML)
             elif msg.voice:
                 result = await app.send_voice(target_chat_id, file, reply_to_message_id=topic_id)
             elif msg.sticker:
@@ -629,17 +628,11 @@ async def send_media_message(app, target_chat_id, msg, caption, topic_id):
             caption = f"> 🗃️ **{file_name}**"
         elif caption and file_name:
             # Add blockquote formatting
-            caption = re.sub(
-                r'https?://t\.me/[^\s]+|https?://telegram\.me/[^\s]+',
-                '𓍯𝙎𝙪𝙟𝙖𝙡⚝',
-                caption
-            )
-            caption = "\n".join([f"> {line}" for line in caption.strip().splitlines()])
-            caption = f">🗃️ **{file_name}**\n\n{caption}"
+            caption = f"<b>🗃️ {file_name}</b>\n\n{caption}"
         elif caption:
-            caption = "\n".join([f"> {line}" for line in caption.strip().splitlines()])
+            pass
         else:
-            caption = ">𓍯𝙎𝙪𝙟𝙖𝙡⚝"
+            caption = None
 
         # Send the message with the right method
         if msg.video:
